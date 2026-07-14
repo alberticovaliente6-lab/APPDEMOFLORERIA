@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floreria POS</title>
+  <meta name="theme-color" content="#b94057" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Floreria POS" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <style>
+    :root{
+      --bg:#f6efe6; --panel:#fffdf9; --muted:#776257; --ink:#2f241e; --line:#e8d7c8;
+      --brand:#b94057; --brand-dark:#86283b; --accent:#f2b84b; --ok:#2f8f6b; --warn:#b54646;
+      --shadow:0 18px 40px rgba(105,66,41,.12); --radius:24px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; color:var(--ink); font-family:"Inter",system-ui,sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(242,184,75,.22), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(185,64,87,.18), transparent 30%),
+        linear-gradient(180deg,#fff8f1 0%,#f6efe6 100%);
+      min-height:100vh;
+    }
+    h1,h2,h3{margin:0; font-family:"Fraunces", Georgia, serif}
+    .wrap{max-width:1320px;margin:0 auto;padding:20px}
+    .card,.panel,.hero,.metric{background:rgba(255,253,249,.92); border:1px solid rgba(232,215,200,.9); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);font-weight:800}
+    .muted{color:var(--muted)}
+    .login{min-height:100vh;display:grid;place-items:center;padding:24px}
+    .login .card{width:min(100%,520px);padding:28px}
+    .stack{display:grid;gap:14px}
+    .btn{border:0;border-radius:16px;padding:13px 16px;font:inherit;font-weight:800;cursor:pointer}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:var(--brand);color:#fff}
+    .btn-secondary{background:#f7eee5;color:var(--ink)}
+    .btn-accent{background:var(--accent);color:#4d3611}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:13px;font-weight:800}
+    .pill.ok{background:rgba(47,143,107,.12);color:var(--ok)}
+    .pill.off{background:rgba(181,70,70,.12);color:var(--warn)}
+    .top{display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+    .hero{padding:26px;position:relative;overflow:hidden}
+    .hero::after{content:"";position:absolute;right:-40px;top:-30px;width:180px;height:180px;background:radial-gradient(circle, rgba(242,184,75,.32) 0%, transparent 68%)}
+    .toolbar,.hero-actions,.tabs{display:flex;gap:10px;flex-wrap:wrap}
+    .layout{display:grid;grid-template-columns:240px minmax(0,1fr);gap:18px;margin-top:18px}
+    .panel{padding:20px}
+    .sidebar{position:sticky;top:20px;height:fit-content}
+    .navbtn{width:100%;text-align:left;background:transparent;border:1px solid transparent;color:var(--muted)}
+    .navbtn.active{background:#fbe8df;color:var(--brand-dark);border-color:#f0cdbd}
+    .content{display:grid;gap:18px}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+    .metric{padding:18px}
+    .metric .value{font-size:28px;font-weight:900;margin-top:6px}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .catalog{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+    .item,.product,.cash{border:1px solid var(--line);border-radius:18px;padding:14px;background:#fff}
+    .item,.cartitem{display:grid;gap:10px}
+    .row,.between{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:#f8ede1;color:var(--muted);font-size:12px;font-weight:800}
+    .price{font-size:22px;font-weight:900;color:var(--brand-dark)}
+    .list{display:grid;gap:12px}
+    .empty{padding:18px;border:1px dashed var(--line);border-radius:18px;color:var(--muted);text-align:center}
+    label{font-size:13px;font-weight:800;color:var(--muted);display:grid;gap:8px}
+    input,select,textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:16px;padding:12px 14px;font:inherit;color:var(--ink)}
+    textarea{min-height:96px;resize:vertical}
+    .banner{padding:12px 14px;border-radius:14px;font-size:14px;font-weight:800}
+    .banner.err{background:rgba(181,70,70,.12);color:var(--warn)}
+    .banner.ok{background:rgba(47,143,107,.12);color:var(--ok)}
+    .statusbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px}
+    #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#2f241e;color:#fff;padding:12px 16px;border-radius:14px;opacity:0;pointer-events:none;transition:.2s}
+    #toast.on{opacity:1}
+    #toast.err{background:var(--warn)}
+    @media (max-width:1080px){.top,.layout,.grid2,.metrics{grid-template-columns:1fr}.sidebar{position:static}}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="toast"></div>
+  <script src="./config.js"></script>
+  <script>
+    const POS_API = { URL: (window.POS_CONFIG && window.POS_CONFIG.apiBaseUrl ? window.POS_CONFIG.apiBaseUrl : "").trim() };
+    const CACHE_KEY = "floreria_fast_cache_v1";
+    const SESSION_KEY = "floreria_fast_session";
+    const state = { appData:null, view:"dashboard", cart:[], banner:null, installPrompt:null };
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      setupPwa();
+      updateNetBadge();
+      render();
+      const token = localStorage.getItem(SESSION_KEY) || "";
+      if(token && POS_API.URL){
+        try{
+          const data = await api("getAppData", { sessionToken: token });
+          state.appData = data;
+          localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+          render();
+        }catch(err){
+          localStorage.removeItem(SESSION_KEY);
+          toast(err.message || "No pude restaurar la sesión", true);
+          render();
+        }
+      }
+    });
+
+    function setupPwa(){
+      if("serviceWorker" in navigator){
+        window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+      }
+      window.addEventListener("beforeinstallprompt",(e)=>{ e.preventDefault(); state.installPrompt=e; render(); });
+      window.addEventListener("appinstalled",()=>{ state.installPrompt=null; toast("App instalada"); render(); });
+      window.addEventListener("online", ()=>{ updateNetBadge(); render(); });
+      window.addEventListener("offline", ()=>{ updateNetBadge(); render(); });
+    }
+
+    function updateNetBadge(){
+      const badge = document.getElementById("netBadge");
+      if(!badge) return;
+      if(!navigator.onLine){ badge.textContent="OFFLINE"; badge.className="pill off"; return; }
+      badge.textContent = POS_API.URL ? "ONLINE" : "DEMO";
+      badge.className = "pill ok";
+    }
+    function toast(msg, err=false){ const t=document.getElementById("toast"); t.textContent=msg; t.className="on"+(err?" err":""); setTimeout(()=>t.className="",2600); }
+    function money(n){ return "$"+Number(n||0).toLocaleString("es-MX",{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function val(id){ const el=document.getElementById(id); return el ? el.value.trim() : ""; }
+    function num(id){ return Number(val(id)||0); }
+    function esc(s){ return String(s??"").replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
+    function fmtDate(v){ if(!v) return ""; return new Intl.DateTimeFormat("es-MX",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)); }
+    function byDateDesc(a,b){ return String(b.sold_at||b.expense_date||"").localeCompare(String(a.sold_at||a.expense_date||"")); }
+
+    async function api(action, payload={}){
+      if(!POS_API.URL) throw new Error("Configura config.js con la URL del Apps Script.");
+      const res = await fetch(POS_API.URL + "?api=1", {
+        method:"POST",
+        headers:{ "Content-Type":"text/plain;charset=utf-8" },
+        body: JSON.stringify({ action, payload })
+      });
+      const data = await res.json();
+      if(data.ok === false) throw new Error(data.error || "Error del backend");
+      return Object.prototype.hasOwnProperty.call(data,"data") ? data.data : data;
+    }
+
+    function render(){
+      const app = document.getElementById("app");
+      if(!POS_API.URL){ app.innerHTML = renderSetup(); bindSetup(); return; }
+      if(!state.appData || !state.appData.session || !state.appData.session.user){ app.innerHTML = renderLogin(); bindLogin(); return; }
+      app.innerHTML = renderApp();
+      bindApp();
+      updateNetBadge();
+    }
+
+    function renderSetup(){
+      return `
+        <div class="login">
+          <div class="card">
+            <div class="eyebrow">Floreria POS</div>
+            <h1>Conecta la PWA al Apps Script.</h1>
+            <p class="muted" style="margin-top:10px;">Edita <code>config.js</code> y pega la URL del Web App en <code>apiBaseUrl</code>.</p>
+            <div class="empty" style="margin-top:18px;text-align:left">
+              <strong>Ejemplo</strong><br />
+              <span class="muted">https://script.google.com/macros/s/TU_DEPLOYMENT_ID/exec</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderLogin(){
+      return `
+        <div class="login">
+          <div class="card">
+            <div class="eyebrow">Floreria POS</div>
+            <h1>Rápido, simple y listo para demo.</h1>
+            <p class="muted" style="margin-top:10px;">Usa el mismo patrón técnico del ejemplo que ya te funcionaba.</p>
+            ${state.banner ? `<div class="banner ${state.banner.err?"err":"ok"}" style="margin-top:16px;">${esc(state.banner.msg)}</div>` : ""}
+            <div class="stack" style="margin-top:20px;">
+              <button class="btn btn-primary" id="btnAdmin">Entrar como admin</button>
+              <button class="btn btn-secondary" id="btnSales">Entrar como ventas</button>
+              <button class="btn btn-secondary" id="btnInit">Inicializar demo</button>
+            </div>
+            <div class="statusbar">
+              <span id="netBadge" class="pill ok">ONLINE</span>
+              ${state.installPrompt ? `<button class="btn btn-secondary" id="btnInstall">Instalar app</button>` : ""}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderApp(){
+      const d = state.appData.dashboard || {};
+      const cfg = state.appData.config || {};
+      const perms = state.appData.permissions || {};
+      const user = state.appData.session.user;
+      if(!perms.canViewExpenses && (state.view === "expenses" || state.view === "inventory")) state.view = "dashboard";
+      return `
+        <div class="wrap">
+          <div class="top">
+            <div class="hero">
+              <div class="eyebrow">Operacion del dia</div>
+              <h1>${esc(user.full_name)}</h1>
+              <p class="muted" style="margin:10px 0 18px;">Rol ${esc(user.role)} · ${d.openCashSession ? "Caja abierta" : "Caja cerrada"}</p>
+              <div class="hero-actions">
+                <button class="btn btn-primary" data-view="sales">Nueva venta</button>
+                ${perms.canRegisterExpenses ? '<button class="btn btn-accent" data-view="expenses">Registrar gasto</button>' : ''}
+                <button class="btn btn-secondary" data-view="cash">Caja</button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="between" style="margin-bottom:16px;">
+                <div>
+                  <div class="eyebrow">Sesión</div>
+                  <h3>Frontend Git + Apps Script</h3>
+                </div>
+                <button class="btn btn-secondary" id="btnLogout">Salir</button>
+              </div>
+              <p class="muted">Una sola llamada de carga y acciones rápidas para una demo estable en florería.</p>
+              <div class="statusbar">
+                <span id="netBadge" class="pill ok">ONLINE</span>
+                <div class="toolbar">
+                  <button class="btn btn-secondary" id="btnRefresh">Refrescar</button>
+                  ${state.installPrompt ? `<button class="btn btn-secondary" id="btnInstall">Instalar app</button>` : ""}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="layout">
+            <div class="panel sidebar">
+              <div class="eyebrow">Navegación</div>
+              <div class="stack" style="margin-top:12px;">
+                <button class="btn navbtn ${state.view==="dashboard"?"active":""}" data-view="dashboard">Dashboard</button>
+                <button class="btn navbtn ${state.view==="sales"?"active":""}" data-view="sales">Nueva venta</button>
+                ${perms.canViewExpenses ? `<button class="btn navbtn ${state.view==="expenses"?"active":""}" data-view="expenses">Gastos</button>` : ""}
+                <button class="btn navbtn ${state.view==="cash"?"active":""}" data-view="cash">Caja</button>
+                ${perms.canViewInventory ? `<button class="btn navbtn ${state.view==="inventory"?"active":""}" data-view="inventory">Inventario</button>` : ""}
+              </div>
+            </div>
+            <div class="content">
+              ${state.banner ? `<div class="banner ${state.banner.err?"err":"ok"}">${esc(state.banner.msg)}</div>` : ""}
+              ${renderView()}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderView(){
+      const perms = state.appData.permissions || {};
+      if(state.view === "sales") return renderSales();
+      if(state.view === "expenses" && perms.canViewExpenses) return renderExpenses();
+      if(state.view === "cash") return renderCash();
+      if(state.view === "inventory" && perms.canViewInventory) return renderInventory();
+      return renderDashboard();
+    }
+
+    function renderDashboard(){
+      const d = state.appData.dashboard || {};
+      const perms = state.appData.permissions || {};
+      return `
+        <section class="metrics">
+          <div class="metric"><div class="eyebrow">Ventas del día</div><div class="value">${money(d.todaySalesAmount)}</div><div class="muted">${d.todaySalesCount||0} tickets</div></div>
+          ${perms.canViewReports ? `<div class="metric"><div class="eyebrow">Gastos del día</div><div class="value">${money(d.todayExpensesAmount)}</div><div class="muted">Salida operativa</div></div>` : ""}
+          ${perms.canViewReports ? `<div class="metric"><div class="eyebrow">Utilidad estimada</div><div class="value">${money(d.estimatedProfit)}</div><div class="muted">Venta menos gasto</div></div>` : ""}
+          <div class="metric"><div class="eyebrow">${perms.canViewReports ? "Stock bajo" : "Caja"}</div><div class="value">${perms.canViewReports ? (d.lowStock||[]).length : (d.openCashSession ? "Abierta" : "Cerrada")}</div><div class="muted">${perms.canViewReports ? "Productos a revisar" : "Estado actual"}</div></div>
+        </section>
+        <section class="grid2">
+          <div class="panel">
+            <div class="eyebrow">Caja</div><h3 style="margin-top:6px;">Estado actual</h3>
+            ${renderCashCard(d.openCashSession)}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">${perms.canViewReports ? "Top ventas" : "Actividad"}</div>
+            <h3 style="margin-top:6px;">${perms.canViewReports ? "Productos más vendidos" : "Tus ventas recientes"}</h3>
+            ${renderSimpleList(perms.canViewReports ? (d.topProducts||[]).map(x=>`
+              <div class="item"><div class="between"><strong>${esc(x.product_name)}</strong><span class="tag">${x.quantity} vendidos</span></div></div>
+            `) : (d.recentSales||[]).map(x=>`
+              <div class="item"><div class="between"><strong>${esc(x.folio)}</strong><span>${money(x.total_amount)}</span></div><div class="muted">${esc(x.customer_name||"Mostrador")}</div></div>
+            `), perms.canViewReports ? "Aún no hay ventas registradas." : "Todavía no hay ventas.")}
+          </div>
+        </section>
+        ${perms.canViewReports ? `
+          <section class="grid2">
+            <div class="panel">
+              <div class="eyebrow">Actividad</div><h3 style="margin-top:6px;">Ventas recientes</h3>
+              ${renderSimpleList((d.recentSales||[]).map(x=>`
+                <div class="item"><div class="between"><strong>${esc(x.folio)}</strong><span>${money(x.total_amount)}</span></div><div class="muted">${esc(x.customer_name||"Mostrador")}</div></div>
+              `), "Todavía no hay ventas.")}
+            </div>
+            <div class="panel">
+              <div class="eyebrow">Control</div><h3 style="margin-top:6px;">Gastos recientes</h3>
+              ${renderSimpleList((d.recentExpenses||[]).map(x=>`
+                <div class="item"><div class="between"><strong>${esc(x.description)}</strong><span>${money(x.amount)}</span></div><div class="muted">${esc(x.category_name||"")}</div></div>
+              `), "Todavía no hay gastos.")}
+            </div>
+          </section>
+        ` : ""}
+      `;
+    }
+
+    function renderSales(){
+      const cfg = state.appData.config || {};
+      const products = (cfg.products||[]).filter(p => [p.name,p.sku].join(" ").toLowerCase().includes((val("search-products")||"").toLowerCase()));
+      return `
+        <section class="grid2">
+          <div class="panel">
+            <div class="eyebrow">Catálogo</div><h3 style="margin-top:6px;">Productos para vender</h3>
+            <label style="margin-top:14px;">Buscar producto<input id="search-products" placeholder="Rosas, SKU, complemento"></label>
+            <div class="catalog" style="margin-top:16px;">
+              ${products.map(p=>`
+                <div class="product">
+                  <div class="tag">${esc(p.sku || p.product_type)}</div>
+                  <h4>${esc(p.name)}</h4>
+                  <div class="muted">Stock: ${p.track_inventory ? p.stock : "N/A"}</div>
+                  <div class="price" style="margin:10px 0;">${money(p.price)}</div>
+                  <button class="btn btn-secondary" data-add="${esc(p.id)}">Agregar</button>
+                </div>
+              `).join("") || '<div class="empty">No hay productos disponibles.</div>'}
+            </div>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Cobro</div><h3 style="margin-top:6px;">Carrito actual</h3>
+            ${renderCart()}
+            <div class="stack" style="margin-top:18px;">
+              <label>Cliente
+                <select id="sale-customer">
+                  <option value="">Mostrador</option>
+                  ${(cfg.customers||[]).map(c=>`<option value="${esc(c.id)}">${esc(c.full_name)}</option>`).join("")}
+                </select>
+              </label>
+              <label>Método de pago
+                <select id="sale-payment">
+                  <option value="">Selecciona</option>
+                  ${(cfg.paymentMethods||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}
+                </select>
+              </label>
+              <label>Referencia<input id="sale-reference" placeholder="Últimos 4 dígitos o folio"></label>
+              <label>Notas<textarea id="sale-notes" placeholder="Dedicatoria o detalles de la venta"></textarea></label>
+              <button class="btn btn-primary" id="btnSaveSale">Confirmar venta</button>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCart(){
+      if(!state.cart.length) return '<div class="empty">Agrega productos para empezar la venta.</div>';
+      const subtotal = state.cart.reduce((s,x)=>s + x.quantity * x.unit_price, 0);
+      return `
+        <div class="list">
+          ${state.cart.map(x=>`
+            <div class="item">
+              <div class="between"><strong>${esc(x.name)}</strong><button class="btn btn-secondary" data-remove="${esc(x.product_id)}">Quitar</button></div>
+              <div class="between">
+                <div class="row"><span class="muted">Cantidad</span><input type="number" min="1" step="1" value="${x.quantity}" data-qty="${esc(x.product_id)}" style="width:90px;"></div>
+                <strong>${money(x.quantity * x.unit_price)}</strong>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <div class="between" style="margin-top:16px;"><span class="muted">Subtotal</span><span class="price">${money(subtotal)}</span></div>
+      `;
+    }
+
+    function renderExpenses(){
+      const cfg = state.appData.config || {};
+      const recent = state.appData.recentExpenses || [];
+      return `
+        <section class="grid2">
+          <div class="panel">
+            <div class="eyebrow">Registro</div><h3 style="margin-top:6px;">Nuevo gasto</h3>
+            <div class="stack" style="margin-top:16px;">
+              <label>Descripción<input id="g-desc" placeholder="Compra de listón, gasolina, material..."></label>
+              <label>Categoría
+                <select id="g-category">
+                  <option value="">Selecciona</option>
+                  ${(cfg.expenseCategories||[]).map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("")}
+                </select>
+              </label>
+              <label>Monto<input id="g-amount" type="number" min="0" step="0.01"></label>
+              <label>Método de pago
+                <select id="g-payment">
+                  <option value="">Sin especificar</option>
+                  ${(cfg.paymentMethods||[]).map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("")}
+                </select>
+              </label>
+              <label>Fecha<input id="g-date" type="datetime-local"></label>
+              <label><input id="g-cash" type="checkbox"> Impacta caja si se pagó en efectivo</label>
+              <label>Notas<textarea id="g-notes" placeholder="Detalle adicional"></textarea></label>
+              <button class="btn btn-primary" id="btnSaveExpense">Guardar gasto</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Historial</div><h3 style="margin-top:6px;">Gastos recientes</h3>
+            ${renderSimpleList(recent.map(x=>`
+              <div class="item"><div class="between"><strong>${esc(x.description)}</strong><span>${money(x.amount)}</span></div><div class="muted">${esc(x.category_name||"")}</div></div>
+            `), "No hay gastos registrados.")}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCash(){
+      const d = state.appData.dashboard || {};
+      const cfg = state.appData.config || {};
+      const session = d.openCashSession;
+      return `
+        <section class="grid2">
+          <div class="panel">
+            <div class="eyebrow">Caja</div><h3 style="margin-top:6px;">${session ? "Caja abierta" : "Abrir caja"}</h3>
+            ${session ? renderCashCard(session) : `
+              <div class="stack" style="margin-top:16px;">
+                <label>Caja
+                  <select id="cash-register">
+                    <option value="">Selecciona</option>
+                    ${(cfg.cashRegisters||[]).map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join("")}
+                  </select>
+                </label>
+                <label>Fondo inicial<input id="cash-opening" type="number" min="0" step="0.01" value="0"></label>
+                <label>Notas<textarea id="cash-notes" placeholder="Observaciones de apertura"></textarea></label>
+                <button class="btn btn-primary" id="btnOpenCash">Abrir caja</button>
+              </div>
+            `}
+          </div>
+          <div class="panel">
+            <div class="eyebrow">Cierre</div><h3 style="margin-top:6px;">Corte rápido</h3>
+            ${session ? `
+              <div class="stack" style="margin-top:16px;">
+                <label>Monto real al cierre<input id="cash-closing" type="number" min="0" step="0.01"></label>
+                <button class="btn btn-accent" id="btnCloseCash">Cerrar caja</button>
+              </div>
+            ` : '<div class="empty">Abre una caja para poder hacer corte.</div>'}
+          </div>
+        </section>
+      `;
+    }
+
+    function renderCashCard(session){
+      if(!session) return '<div class="empty">No hay caja abierta.</div>';
+      return `
+        <div class="cash">
+          <div class="between"><strong>${esc(session.id)}</strong><span class="pill ok">Activa</span></div>
+          <div class="muted" style="margin-top:8px;">Abierta: ${fmtDate(session.opened_at)}</div>
+          <div class="muted" style="margin-top:4px;">${esc(session.cash_register_name || "Caja")}</div>
+          <div class="between" style="margin-top:14px;"><span>Fondo inicial</span><strong>${money(session.opening_amount)}</strong></div>
+          ${session.expected_amount ? `<div class="between" style="margin-top:8px;"><span>Esperado</span><strong>${money(session.expected_amount)}</strong></div>` : ""}
+        </div>
+      `;
+    }
+
+    function renderInventory(){
+      const rows = state.appData.inventory || [];
+      return `
+        <section class="panel">
+          <div class="eyebrow">Inventario</div><h3 style="margin-top:6px;">Stock actual</h3>
+          ${renderSimpleList(rows.map(p=>`
+            <div class="item"><div class="between"><strong>${esc(p.name)}</strong><span>${p.track_inventory ? p.stock : "No inventariable"}</span></div><div class="between"><span class="muted">${esc(p.sku||"")}</span>${p.stock_alert ? '<span class="tag">Stock bajo</span>' : '<span class="tag">OK</span>'}</div></div>
+          `), "No hay productos registrados.")}
+        </section>
+      `;
+    }
+
+    function renderSimpleList(items, emptyText){ return items.length ? `<div class="list">${items.join("")}</div>` : `<div class="empty">${emptyText}</div>`; }
+
+    function bindSetup(){}
+    function bindLogin(){
+      document.getElementById("btnAdmin")?.addEventListener("click", ()=>enterRole("admin"));
+      document.getElementById("btnSales")?.addEventListener("click", ()=>enterRole("sales"));
+      document.getElementById("btnInit")?.addEventListener("click", async ()=>{ try{ await api("initializeDemo",{}); state.banner={msg:"Demo inicializada. Ya puedes entrar.", err:false}; render(); }catch(err){ toast(err.message,true); } });
+      document.getElementById("btnInstall")?.addEventListener("click", installApp);
+    }
+    function bindApp(){
+      document.querySelectorAll("[data-view]").forEach(btn=>btn.addEventListener("click",()=>{ state.view=btn.dataset.view; render(); }));
+      document.getElementById("btnLogout")?.addEventListener("click", async ()=>{
+        try{ await api("logout",{ sessionToken: localStorage.getItem(SESSION_KEY)||"" }); }catch(err){}
+        localStorage.removeItem(SESSION_KEY); state.appData=null; state.cart=[]; render();
+      });
+      document.getElementById("btnRefresh")?.addEventListener("click", loadAppData);
+      document.getElementById("btnInstall")?.addEventListener("click", installApp);
+      bindSales();
+      bindExpenses();
+      bindCash();
+    }
+    function bindSales(){
+      document.getElementById("search-products")?.addEventListener("input", ()=>render());
+      document.querySelectorAll("[data-add]").forEach(btn=>btn.addEventListener("click", ()=>addToCart(btn.dataset.add)));
+      document.querySelectorAll("[data-remove]").forEach(btn=>btn.addEventListener("click", ()=>{ state.cart = state.cart.filter(x=>x.product_id !== btn.dataset.remove); render(); }));
+      document.querySelectorAll("[data-qty]").forEach(input=>input.addEventListener("change", ()=>{ const item=state.cart.find(x=>x.product_id===input.dataset.qty); if(item){ item.quantity=Math.max(1, Number(input.value)||1); render(); } }));
+      document.getElementById("btnSaveSale")?.addEventListener("click", saveSaleFast);
+    }
+    function bindExpenses(){ document.getElementById("btnSaveExpense")?.addEventListener("click", saveExpenseFast); }
+    function bindCash(){
+      document.getElementById("btnOpenCash")?.addEventListener("click", openCashFast);
+      document.getElementById("btnCloseCash")?.addEventListener("click", closeCashFast);
+    }
+
+    async function enterRole(role){
+      try{
+        const auth = await api("demoLogin",{ role });
+        localStorage.setItem(SESSION_KEY, auth.sessionToken);
+        state.view = role === "sales" ? "sales" : "dashboard";
+        await loadAppData();
+        toast("Sesión iniciada");
+      }catch(err){ toast(err.message, true); }
+    }
+
+    async function loadAppData(){
+      try{
+        const token = localStorage.getItem(SESSION_KEY) || "";
+        const data = await api("getAppData",{ sessionToken: token });
+        state.appData = data;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        render();
+      }catch(err){
+        const cached = localStorage.getItem(CACHE_KEY);
+        if(cached){
+          state.appData = JSON.parse(cached);
+          render();
+          toast("Mostrando último caché local", true);
+          return;
+        }
+        throw err;
+      }
+    }
+
+    function addToCart(productId){
+      const product = (state.appData.config.products||[]).find(p=>p.id===productId);
+      if(!product) return;
+      const existing = state.cart.find(x=>x.product_id===productId);
+      if(existing) existing.quantity += 1;
+      else state.cart.push({ product_id:product.id, name:product.name, quantity:1, unit_price:Number(product.price) });
+      render();
+    }
+
+    async function saveSaleFast(){
+      if(!state.cart.length){ toast("Agrega productos al carrito", true); return; }
+      try{
+        const subtotal = state.cart.reduce((s,x)=>s + x.quantity * x.unit_price, 0);
+        await api("saveSale",{
+          sessionToken: localStorage.getItem(SESSION_KEY)||"",
+          customer_id: val("sale-customer"),
+          payment_method_id: val("sale-payment"),
+          reference: val("sale-reference"),
+          notes: val("sale-notes"),
+          paid_amount: subtotal,
+          items: state.cart.map(x=>({ product_id:x.product_id, quantity:x.quantity, unit_price:x.unit_price }))
+        });
+        state.cart = [];
+        toast("Venta guardada");
+        await loadAppData();
+        state.view = "dashboard";
+        render();
+      }catch(err){ toast(err.message, true); }
+    }
+
+    async function saveExpenseFast(){
+      try{
+        await api("saveExpense",{
+          sessionToken: localStorage.getItem(SESSION_KEY)||"",
+          description: val("g-desc"),
+          expense_category_id: val("g-category"),
+          amount: num("g-amount"),
+          payment_method_id: val("g-payment"),
+          expense_date: val("g-date") ? new Date(val("g-date")).toISOString() : "",
+          affects_cash: document.getElementById("g-cash")?.checked || false,
+          notes: val("g-notes")
+        });
+        toast("Gasto guardado");
+        await loadAppData();
+        state.view = "dashboard";
+        render();
+      }catch(err){ toast(err.message, true); }
+    }
+
+    async function openCashFast(){
+      try{
+        await api("openCashSession",{
+          sessionToken: localStorage.getItem(SESSION_KEY)||"",
+          cash_register_id: val("cash-register"),
+          opening_amount: num("cash-opening"),
+          notes: val("cash-notes")
+        });
+        toast("Caja abierta");
+        await loadAppData();
+      }catch(err){ toast(err.message, true); }
+    }
+
+    async function closeCashFast(){
+      try{
+        const result = await api("closeCashSession",{
+          sessionToken: localStorage.getItem(SESSION_KEY)||"",
+          closing_amount: num("cash-closing")
+        });
+        toast("Caja cerrada. Diferencia: " + money(result.difference_amount));
+        await loadAppData();
+      }catch(err){ toast(err.message, true); }
+    }
+
+    async function installApp(){
+      if(!state.installPrompt) return;
+      state.installPrompt.prompt();
+      await state.installPrompt.userChoice;
+      state.installPrompt = null;
+      render();
+    }
+  </script>
+</body>
+</html>
