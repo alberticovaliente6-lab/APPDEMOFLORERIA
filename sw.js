@@ -1,4 +1,4 @@
-const CACHE = "floreria-fast-v1";
+const CACHE = "floreria-fast-2026-07-13b";
 const SHELL = ["./","./index.html","./config.js","./manifest.webmanifest","./icon-192.png","./icon-512.png"];
 self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener("activate", e => e.waitUntil(caches.keys().then(keys => Promise.all(keys.map(k => k!==CACHE ? caches.delete(k) : Promise.resolve()))).then(()=>self.clients.claim())));

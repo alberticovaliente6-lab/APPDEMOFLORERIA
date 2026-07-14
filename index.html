@@ -82,11 +82,13 @@
   <script src="./config.js"></script>
   <script>
     const POS_API = { URL: (window.POS_CONFIG && window.POS_CONFIG.apiBaseUrl ? window.POS_CONFIG.apiBaseUrl : "").trim() };
-    const CACHE_KEY = "floreria_fast_cache_v1";
+    const FRONTEND_VERSION = "2026-07-13b";
+    const CACHE_KEY = "floreria_fast_cache_v2";
     const SESSION_KEY = "floreria_fast_session";
     const state = { appData:null, view:"dashboard", cart:[], banner:null, installPrompt:null };
 
     document.addEventListener("DOMContentLoaded", async () => {
+      await cleanupLegacyCaches();
       setupPwa();
       updateNetBadge();
       render();
@@ -105,9 +107,19 @@
       }
     });
 
+    async function cleanupLegacyCaches(){
+      try{
+        localStorage.removeItem("floreria_fast_cache_v1");
+        if("caches" in window){
+          const keys = await caches.keys();
+          await Promise.all(keys.filter(key => key.indexOf("floreria-fast-") === 0 && key !== ("floreria-fast-" + FRONTEND_VERSION)).map(key => caches.delete(key)));
+        }
+      }catch(err){}
+    }
+
     function setupPwa(){
       if("serviceWorker" in navigator){
-        window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+        window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=" + FRONTEND_VERSION).catch(()=>{}));
       }
       window.addEventListener("beforeinstallprompt",(e)=>{ e.preventDefault(); state.installPrompt=e; render(); });
       window.addEventListener("appinstalled",()=>{ state.installPrompt=null; toast("App instalada"); render(); });
