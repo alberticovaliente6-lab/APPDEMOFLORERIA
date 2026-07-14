@@ -95,7 +95,7 @@
       const token = localStorage.getItem(SESSION_KEY) || "";
       if(token && POS_API.URL){
         try{
-          const data = await api("getAppData", { sessionToken: token });
+          const data = normalizeAppData(await api("bootstrap", { sessionToken: token }));
           state.appData = data;
           localStorage.setItem(CACHE_KEY, JSON.stringify(data));
           render();
@@ -141,6 +141,43 @@
     function esc(s){ return String(s??"").replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch])); }
     function fmtDate(v){ if(!v) return ""; return new Intl.DateTimeFormat("es-MX",{dateStyle:"medium",timeStyle:"short"}).format(new Date(v)); }
     function byDateDesc(a,b){ return String(b.sold_at||b.expense_date||"").localeCompare(String(a.sold_at||a.expense_date||"")); }
+    function buildPermissions(user){
+      const isAdmin = !!(user && user.role === "admin");
+      return {
+        canViewExpenses: isAdmin,
+        canViewInventory: isAdmin,
+        canRegisterExpenses: isAdmin,
+        canViewReports: isAdmin
+      };
+    }
+    function normalizeAppData(data){
+      if(data && data.session && data.session.user) return data;
+      if(data && data.authenticated && data.user){
+        const perms = buildPermissions(data.user);
+        return {
+          session: { sessionToken: data.sessionToken || "", user: data.user },
+          dashboard: {
+            user: data.user,
+            todaySalesCount: 0,
+            todaySalesAmount: 0,
+            todayExpensesAmount: perms.canViewExpenses ? 0 : null,
+            estimatedProfit: perms.canViewExpenses ? 0 : null,
+            openCashSession: data.cashSession || null,
+            lowStock: [],
+            topProducts: [],
+            recentSales: [],
+            recentExpenses: [],
+            inventorySummary: []
+          },
+          config: data.config || {},
+          inventory: [],
+          recentSales: [],
+          recentExpenses: [],
+          permissions: perms
+        };
+      }
+      return data;
+    }
 
     async function api(action, payload={}){
       if(!POS_API.URL) throw new Error("Configura config.js con la URL del Apps Script.");
@@ -521,7 +558,7 @@
     async function loadAppData(){
       try{
         const token = localStorage.getItem(SESSION_KEY) || "";
-        const data = await api("getAppData",{ sessionToken: token });
+        const data = normalizeAppData(await api("bootstrap",{ sessionToken: token }));
         state.appData = data;
         localStorage.setItem(CACHE_KEY, JSON.stringify(data));
         render();
